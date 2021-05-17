@@ -1,1 +1,1 @@
-# mathify
+A simple project I played around with some day. It takes a text and creates a a bunch of fourier series, which together display the text when plotted. Inspired by https://blog.wolfram.com/2013/05/17/making-formulas-for-everything-from-pi-to-the-pink-panther-to-sir-isaac-newton/, can be easily adapted to work on any smooth closed curve.
