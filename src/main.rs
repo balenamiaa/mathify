@@ -2,7 +2,6 @@
 #![feature(fn_traits)]
 
 extern crate anyhow;
-extern crate raylib;
 extern crate rustfft;
 extern crate rusttype;
 extern crate splines;
@@ -10,12 +9,10 @@ extern crate splines;
 use ::core::f64;
 use anyhow::anyhow;
 use std::{
+    f64::consts::PI,
     fmt::Write,
     ops::{Div, Mul, RangeInclusive},
 };
-
-use raylib::prelude::*;
-use rustfft::num_traits::Signed;
 
 struct FourierSeries {
     coeffs: Vec<(f64, f64)>,
@@ -148,9 +145,9 @@ impl FourierSeries {
         }
     }
 
-    fn equation(&self, limit_factor: usize) -> anyhow::Result<String> {
+    fn equation(&self) -> anyhow::Result<String> {
         let mut f = String::new();
-        for n in 0..(self.coeffs.len() / limit_factor) {
+        for n in 0..self.coeffs.len() {
             let coeff = self.coeffs[n];
             let a = coeff.0.mul(1000e0).round().div(1000e0);
             let b = coeff.1.mul(1000e0).round().div(1000e0);
@@ -160,9 +157,11 @@ impl FourierSeries {
                 .div(1000e0);
             if n == 0 {
                 if c != 0e0 {
-                    f.write_fmt(format_args!("{}cos({}*t) ", a, c))?;
+                    if a.abs() > 0.010 {
+                        f.write_fmt(format_args!("{}cos({}*t) ", a, c))?;
+                    }
 
-                    if b != 0e0 {
+                    if b != 0e0 && b.abs() > 0.010 {
                         if b.is_sign_negative() {
                             f.write_fmt(format_args!("- {}sin({}*t) ", b.abs(), c))?;
                         } else {
@@ -174,13 +173,15 @@ impl FourierSeries {
                 }
             } else {
                 if c != 0e0 {
-                    if a.is_sign_negative() {
-                        f.write_fmt(format_args!("- {}cos({}*t) ", a.abs(), c))?;
-                    } else {
-                        f.write_fmt(format_args!("+ {}cos({}*t) ", a, c))?;
+                    if a.abs() > 0.010 {
+                        if a.is_sign_negative() {
+                            f.write_fmt(format_args!("- {}cos({}*t) ", a.abs(), c))?;
+                        } else {
+                            f.write_fmt(format_args!("+ {}cos({}*t) ", a, c))?;
+                        }
                     }
 
-                    if b != 0e0 {
+                    if b != 0e0 && b.abs() > 0.010 {
                         if b.is_sign_negative() {
                             f.write_fmt(format_args!("- {}sin({}*t) ", b.abs(), c))?;
                         } else {
@@ -595,24 +596,16 @@ fn text_to_equation(text: &str) -> anyhow::Result<String> {
         let approx_x = cosine_interpolation(&xs, &ts);
         let approx_y = cosine_interpolation(&ys, &ts);
         let fx = FourierSeries::new(
-            FourierCoefficients::ApproxFn(
-                Box::new(move |t| approx_x.sample(t).unwrap()),
-                1000,
-                &ts,
-            ),
+            FourierCoefficients::ApproxFn(Box::new(move |t| approx_x.sample(t).unwrap()), 500, &ts),
             10e0,
         );
         let fy = FourierSeries::new(
-            FourierCoefficients::ApproxFn(
-                Box::new(move |t| approx_y.sample(t).unwrap()),
-                1000,
-                &ts,
-            ),
+            FourierCoefficients::ApproxFn(Box::new(move |t| approx_y.sample(t).unwrap()), 500, &ts),
             10e0,
         );
-        result.write_fmt(format_args!("x{}(t) = {}\n\n", n, fx.equation(25)?))?;
-        result.write_fmt(format_args!("y{}(t) = {}\n\n", n, fy.equation(25)?))?;
-        start += 15e0;
+        result.write_fmt(format_args!("x{}(t) = {}\n\n", n, fx.equation()?))?;
+        result.write_fmt(format_args!("y{}(t) = {}\n\n", n, fy.equation()?))?;
+        start += 12e0;
         result.write_str("\n\n\n")?;
     }
 
